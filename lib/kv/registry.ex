@@ -45,20 +45,20 @@ defmodule KV.Registry do
     {:reply, HashDict.fetch(names, name), state}
   end
 
+  def handle_call(:stop, _from, state) do
+    {:stop, :normal, :ok, state}
+  end
+
   def handle_cast({:create, name}, {names, refs}) do
     if HashDict.has_key?(names, name) do
       {:noreply, {names, refs}}
     else
-      {:ok, bucket} = KV.Bucket.start_link()
+      {:ok, pid} = KV.Bucket.start_link()
       ref = Process.monitor(pid)
       refs = HashDict.put(refs, ref, name)
       names = HashDict.put(names, name, pid)
-      {:noreply, HashDict.put(names, name, bucket)}
+      {:noreply, {names, refs}}
     end
-  end
-
-  def handle_call(:stop, _from, state) do
-    {:stop, :normal, :ok, state}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs}) do
